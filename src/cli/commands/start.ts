@@ -1,49 +1,34 @@
 /**
- * CLI command: start
- * 
- * Merges environment variables with CLI parameters
- * Starts the background daemon that polls for updates
+ * Start command - launches the auto-update daemon
  */
 
+import { Poller } from '../../core/poller';
 import { PollerOptions } from '../../types';
 import { logger } from '../../utils/logger';
 
-export const describe = 'Start the auto-update daemon';
+export async function startCommand(options: PollerOptions): Promise<void> {
+  logger.info('Starting devops-custom daemon');
+  logger.info(`Poll interval: ${options.pollInterval}ms`);
+  logger.info(`Repos root: ${options.reposRoot}`);
+  logger.info(`Log level: ${options.logLevel}`);
 
-export const builder = (y: any) => y
-  .option('poll-interval', {
-    alias: 'p',
-    type: 'number',
-    description: 'Poll interval in milliseconds',
-    default: parseInt(process.env.POLL_INTERVAL || '300000', 10),
-  })
-  .option('repos-root', {
-    alias: 'r',
-    type: 'string',
-    description: 'Root directory to scan for repositories',
-    default: process.env.REPOS_ROOT || '~/projects',
-  })
-  .option('log-level', {
-    alias: 'l',
-    type: 'string',
-    description: 'Log level',
-    default: process.env.LOG_LEVEL || 'info',
-    choices: ['debug', 'info', 'warn', 'error'],
-  });
+  const poller = new Poller();
 
-export async function handler(argv: any) {
-  const config: PollerOptions = {
-    pollInterval: argv['poll-interval'],
-    reposRoot: argv['repos-root'],
-    logLevel: argv['log-level'],
+  // Handle graceful shutdown
+  const gracefulShutdown = () => {
+    logger.info('Received SIGTERM/SIGINT, shutting down gracefully...');
+    poller.stop();
+    process.exit(0);
   };
 
-  logger.info('[start] Starting daemon with config:', config);
-  
-  // TODO: Implementation
-  // 1. Load and validate config
-  // 2. Scan for repos
-  // 3. Start polling loop
-  // 4. Register signal handlers (SIGTERM, SIGINT)
-  // 5. Keep process alive
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
+
+  try {
+    await poller.start(options);
+    // Poller runs continuously, waiting for signal to stop
+  } catch (error) {
+    logger.error(`Failed to start daemon: ${error}`);
+    process.exit(1);
+  }
 }

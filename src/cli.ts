@@ -3,16 +3,13 @@
 /**
  * CLI Entry point for devops-custom
  * 
- * This file handles the CLI interface and integrates environment variables
- * with yargs command-line parameters. ENV vars are passed as config, but
- * CLI parameters can override them.
+ * Integrates environment variables with CLI parameters using yargs.
+ * ENV vars set defaults, CLI flags override them.
  * 
- * Pattern:
- * - Load .env file with dotenv
- * - Parse env vars into default config
- * - Use yargs to define commands (start, scan, status)
- * - Each command can override env vars with CLI flags
- * - Pass merged config to handlers
+ * Commands:
+ * - start: Starts the auto-update daemon
+ * - scan: Lists all detected repositories
+ * - status: Shows daemon status
  */
 
 require('dotenv').config();
@@ -22,92 +19,89 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { logger } from './utils/logger';
 import { PollerOptions } from './types';
+import { startCommand } from './cli/commands/start';
+import { scanCommand } from './cli/commands/scan';
+import { statusCommand } from './cli/commands/status';
 
 /**
  * Get default config from environment variables
  */
 function getConfigFromEnv(): Partial<PollerOptions> {
+  const home = process.env.HOME || process.env.USERPROFILE || '~';
+  const expandPath = (p: string) => p.replace('~', home);
+
   return {
-    pollInterval: parseInt(process.env.POLL_INTERVAL || '300000', 10), // 5 minutes default
-    reposRoot: process.env.REPOS_ROOT || path.expandUser('~/projects'),
+    pollInterval: parseInt(process.env.POLL_INTERVAL || '300000', 10),
+    reposRoot: expandPath(process.env.REPOS_ROOT || '~/projects'),
     logLevel: (process.env.LOG_LEVEL || 'info') as any,
   };
 }
 
 // Initialize CLI
 const cli = yargs(hideBin(process.argv));
-
-// Get base config from env
 const baseConfig = getConfigFromEnv();
 
-logger.info(`[CLI] Starting devops-custom`);
-logger.info(`[CLI] Poll interval: ${baseConfig.pollInterval}ms`);
-logger.info(`[CLI] Repos root: ${baseConfig.reposRoot}`);
-logger.info(`[CLI] Log level: ${baseConfig.logLevel}`);
-
-// Define commands
+// Define and register commands
 cli
   .command(
     'start',
     'Start the auto-update daemon',
-    (y) => y
-      .option('poll-interval', {
-        alias: 'p',
-        type: 'number',
-        description: 'Poll interval in milliseconds',
-        default: baseConfig.pollInterval,
-      })
-      .option('repos-root', {
-        alias: 'r',
-        type: 'string',
-        description: 'Root directory to scan for repositories',
-        default: baseConfig.reposRoot,
-      })
-      .option('log-level', {
-        alias: 'l',
-        type: 'string',
-        description: 'Log level: debug, info, warn, error',
-        default: baseConfig.logLevel,
-        choices: ['debug', 'info', 'warn', 'error'],
-      }),
+    (y) =>
+      y
+        .option('poll-interval', {
+          alias: 'p',
+          type: 'number',
+          description: 'Poll interval in milliseconds',
+          default: baseConfig.pollInterval,
+        })
+        .option('repos-root', {
+          alias: 'r',
+          type: 'string',
+          description: 'Root directory to scan for repositories',
+          default: baseConfig.reposRoot,
+        })
+        .option('log-level', {
+          alias: 'l',
+          type: 'string',
+          description: 'Log level (debug, info, warn, error)',
+          default: baseConfig.logLevel,
+          choices: ['debug', 'info', 'warn', 'error'],
+        }),
     async (argv) => {
-      // Merge env defaults with CLI overrides
       const config: PollerOptions = {
         pollInterval: argv['poll-interval'] as number,
         reposRoot: argv['repos-root'] as string,
         logLevel: argv['log-level'] as any,
       };
-      
-      logger.info('[start] Starting daemon with config:', config);
-      // Implementation will go here
-      // const daemon = await startDaemon(config);
+
+      await startCommand(config);
     }
   )
   .command(
     'scan',
-    'Scan for repositories',
-    (y) => y
-      .option('repos-root', {
-        alias: 'r',
-        type: 'string',
-        description: 'Root directory to scan',
-        default: baseConfig.reposRoot,
-      })
-      .option('log-level', {
-        alias: 'l',
-        type: 'string',
-        description: 'Log level',
-        default: baseConfig.logLevel,
-        choices: ['debug', 'info', 'warn', 'error'],
-      }),
+    'Scan and list all repositories',
+    (y) =>
+      y
+        .option('repos-root', {
+          alias: 'r',
+          type: 'string',
+          description: 'Root directory to scan',
+          default: baseConfig.reposRoot,
+        })
+        .option('log-level', {
+          alias: 'l',
+          type: 'string',
+          description: 'Log level',
+          default: baseConfig.logLevel,
+          choices: ['debug', 'info', 'warn', 'error'],
+        }),
     async (argv) => {
       const config: Partial<PollerOptions> = {
         reposRoot: argv['repos-root'] as string,
         logLevel: argv['log-level'] as any,
       };
-      
-      logger.info('[scan] Scanning for repositories with config:', config);
-      // Implementation will go here
+
+      await scanCommand(config);
     }
   )
   .command(
@@ -115,10 +109,12 @@ cli
     'Show daemon status',
     (y) => y,
     async (argv) => {
-      logger.info('[status] Fetching daemon status');
-      // Implementation will go here
+      await statusCommand();
     }
   )
   .demandCommand(1)
+  .alias('h', 'help')
+  .alias('v', 'version')
   .help()
+  .strict()
   .argv;
