@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * CLI Entry point for diablito-deploy
+ * CLI Entry point for devops-custom
  * 
  * This file handles the CLI interface and integrates environment variables
  * with yargs command-line parameters. ENV vars are passed as config, but
@@ -40,7 +40,7 @@ const cli = yargs(hideBin(process.argv));
 // Get base config from env
 const baseConfig = getConfigFromEnv();
 
-logger.info(`[CLI] Starting diablito-deploy`);
+logger.info(`[CLI] Starting devops-custom`);
 logger.info(`[CLI] Poll interval: ${baseConfig.pollInterval}ms`);
 logger.info(`[CLI] Repos root: ${baseConfig.reposRoot}`);
 logger.info(`[CLI] Log level: ${baseConfig.logLevel}`);

@@ -1,8 +1,8 @@
-# 📋 Structure Summary - Ready for Implementation
+# 📋 Structure Summary - DevOps Custom Ready for Implementation
 
 ## ✅ Completed Setup
 
-### 1. Configuration Files Copied from `adba`
+### 1. Configuration Files
 ```
 ✅ .babelrc                  - Babel configuration
 ✅ .gitignore               - Git ignore rules (+ .deploying, .env added)
@@ -168,7 +168,7 @@ POLL_INTERVAL=300000 yarn dev start --poll-interval 20000  # Uses 20000
 □ Unit tests (junit)
 □ E2E tests
 □ Documentation (typedoc)
-□ .diablito-deploy.json support
+□ .devops-custom.json support
 □ Systemd service template
 ```
 
@@ -194,7 +194,7 @@ POLL_INTERVAL=300000 yarn dev start --poll-interval 20000  # Uses 20000
 
 1. **Install dependencies:**
    ```bash
-   cd /home/diablo/dev/devops-custom
+   cd ~/devops-custom
    yarn install
    ```
 
@@ -245,7 +245,7 @@ POLL_INTERVAL=300000 yarn dev start --poll-interval 20000  # Uses 20000
 
 **You now have:**
 - ✅ Complete project scaffolding
-- ✅ All configuration files copied from `adba`
+- ✅ All configuration files properly configured
 - ✅ Type system defined
 - ✅ Logger ready
 - ✅ CLI structure with env + parameter integration

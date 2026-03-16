@@ -9,7 +9,7 @@ Toda la estructura base está lista. Los archivos clave están preparados para q
 ## 📂 Estructura Completa Creada
 
 ```
-diablito-deploy/
+devops-custom/
 │
 ├── 📄 Configuración (LISTA)
 │   ├── .babelrc ............................ ✅
@@ -110,7 +110,7 @@ REPOS_ROOT=~/my-repos yarn dev start --poll-interval 20000
     - Find .git recursively
     - Filter folders starting with "."
     - Extract remote origin URL
-    - Load .diablito-deploy.json config
+    - Load .devops-custom.json config
     - Return Repository[] array
 
 2️⃣  src/utils/git.ts

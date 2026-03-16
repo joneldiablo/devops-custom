@@ -1,5 +1,5 @@
 /**
- * Core types and interfaces for diablito-deploy
+ * Core types and interfaces for devops-custom
  */
 
 export interface Repository {

@@ -1,5 +1,5 @@
 {
-  "name": "diablito-deploy",
+  "name": "devops-custom",
   "version": "0.1.0",
   "description": "Auto-update daemon para proyectos Node con Git + PM2",
   "author": "diablito",
@@ -8,7 +8,7 @@
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
   "bin": {
-    "diablito-deploy": "dist/cjs/cli.js"
+    "devops-custom": "dist/cjs/cli.js"
   },
   "scripts": {
     "build:cjs": "tsc -p tsconfig.json",
@@ -52,7 +52,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joneldiablo/diablito-deploy.git"
+    "url": "git+https://github.com/joneldiablo/devops-custom.git"
   },
   "directories": {
     "ts": "src",

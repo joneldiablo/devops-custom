@@ -5,5 +5,5 @@
 // TODO: Write tests for scanner
 // - test finding .git folders
 // - test filtering hidden folders
-// - test loading .diablito-deploy.json
+// - test loading .devops-custom.json
 // - test error handling

@@ -1,4 +1,4 @@
-# 🚀 START HERE - Diablito Deploy Structure Ready!
+# 🚀 START HERE - DevOps Custom Structure Ready!
 
 > Everything is set up and ready for you to implement the core logic.
 
@@ -6,7 +6,7 @@
 
 ## ✅ What's Been Done
 
-Your project structure is **100% complete**. All configuration files have been copied from the `adba` pattern and adapted for the vanilla auto-deploy daemon.
+Your project structure is **100% complete**. All configuration files are in place and ready for the vanilla auto-deploy daemon.
 
 ### Files Ready (34 files created):
 
@@ -83,7 +83,7 @@ Implement in this order:
    - Find all `.git` folders recursively in REPOS_ROOT
    - **FILTER folders starting with "."** (critical!)
    - Extract remote origin URL
-   - Load `.diablito-deploy.json` config per repo
+   - Load `.devops-custom.json` config per repo
    - Return `Repository[]`
 
 2. **`src/utils/git.ts`**
@@ -258,7 +258,7 @@ yarn dev --help        # See CLI
 ## ✨ Summary
 
 - ✅ 34 files created (config, TypeScript, tests, docs)
-- ✅ All structure from `adba` pattern applied
+- ✅ All structure properly configured
 - ✅ Environment variables + CLI integration ready
 - ✅ Logger configured and ready to use
 - ✅ Build pipeline ready

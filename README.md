@@ -1,11 +1,11 @@
-# 🚀 Diablito Deploy - Auto Update Daemon
+# 🚀 DevOps Custom - Auto Update Daemon
 
 Auto-update daemon para proyectos Node.js usando Git + PM2. Detecta cambios en repositorios y actualiza automáticamente cada 5 minutos (configurable).
 
 ## 📁 Estructura del Proyecto
 
 ```
-diablito-deploy/
+devops-custom/
 ├── src/                          # TypeScript source code
 │   ├── cli.ts                   # CLI entry point (yargs + env vars integration)
 │   ├── index.ts                 # Main exports
@@ -59,9 +59,9 @@ diablito-deploy/
 
 ## 🔧 Setup
 
-### 1. Copy the structure to your dev folder (if not already done):
+### 1. Navigate to the project directory:
 ```bash
-cd /home/diablo/dev/devops-custom
+cd ~/devops-custom
 ```
 
 ### 2. Install dependencies:
@@ -104,21 +104,21 @@ REPOS_ROOT=~/my-projects LOG_LEVEL=debug yarn dev start -p 15000
 
 ### Start daemon
 ```bash
-diablito-deploy start
-diablito-deploy start --poll-interval 10000 --repos-root ~/my-repos
+devops-custom start
+devops-custom start --poll-interval 10000 --repos-root ~/my-repos
 yarn dev start
 ```
 
 ### Scan for repositories
 ```bash
-diablito-deploy scan
-diablito-deploy scan --repos-root ~/my-repos
+devops-custom scan
+devops-custom scan --repos-root ~/my-repos
 yarn dev scan
 ```
 
 ### Show daemon status
 ```bash
-diablito-deploy status
+devops-custom status
 yarn dev status
 ```
 
@@ -184,7 +184,7 @@ yarn test:e2e          # Run e2e tests
 ### Phase 2: Optimization
 - [ ] Lock system enhancements
 - [ ] PM2 config detection
-- [ ] `.diablito-deploy.json` per-repo config
+- [ ] `.devops-custom.json` per-repo config
 - [ ] Better error handling and recovery
 - [ ] Status reporting/daemon communication
 

@@ -1,5 +1,5 @@
 /**
- * Main export file for diablito-deploy
+ * Main export file for devops-custom
  * Exports all public functions and types
  */
 

@@ -1,4 +1,4 @@
-# 🚀 Diablito Deploy Daemon - Auto Update de Proyectos
+# 🚀 DevOps Custom Daemon - Auto Update de Proyectos
 
 ## 📋 La Idea
 Crear un daemon en TypeScript que automáticamente actualice proyectos cuando detecte cambios en sus repositorios Git. Sistema **local-first**, sin webhooks ni APIs de GitHub. Solo Git + PM2 + Node.
@@ -21,7 +21,7 @@ Crear un daemon en TypeScript que automáticamente actualice proyectos cuando de
 ## 📝 Pasos Necesarios (Mejor Estimación)
 
 ### **Fase 1: MVP (Semana 1)**
-- [x] Estructura base del proyecto (basada en `adba`) ✅ COMPLETADO
+- [x] Estructura base del proyecto ✅ COMPLETADO
 - [x] Configuración de variables de entorno (POLL_INTERVAL, REPOS_ROOT) ✅ COMPLETADO
 - [ ] Scanner de repos (detectar `.git` cada 24h, filtrar carpetas ocultas) ⏭️ NEXT
 - [ ] Poller (check cada POLL_INTERVAL, configurable via env) ⏭️ NEXT
@@ -31,7 +31,7 @@ Crear un daemon en TypeScript que automáticamente actualice proyectos cuando de
 ### **Fase 2: Optimizaciones (Semana 2)**
 - [ ] Sistema de locks (`.deploying`) para evitar deploys simultáneos
 - [ ] Detección automática de config desde `ecosystem.config.js`
-- [ ] Archivo `.diablito-deploy.json` por proyecto
+- [ ] Archivo `.devops-custom.json` por proyecto
 - [ ] Logging + métricas básicas
 - [ ] Usar repositorio Git si existe para publicar en npm
 
@@ -43,10 +43,10 @@ Crear un daemon en TypeScript que automáticamente actualice proyectos cuando de
 
 ---
 
-## 🏗️ Arquitectura Recomendada (Basada en `adba`)
+## 🏗️ Arquitectura del Proyecto
 
 ```
-diablito-deploy/
+devops-custom/
 ├── src/
 │   ├── cli/
 │   │   ├── commands/
@@ -77,17 +77,17 @@ diablito-deploy/
 │
 ├── .env.example              (POLL_INTERVAL=300000, REPOS_ROOT=~/projects)
 ├── .env                      (git ignored)
-├── .babelrc                  (babel config, copia de adba)
+├── .babelrc                  (babel config)
 ├── .git/                     (repositorio git)
-├── .gitignore                (copia de adba, + .env, dist/)
-├── .npmignore                (copia de adba)
-├── .diablito-deploy.json     (config default)
+├── .gitignore                (+ .env, dist/)
+├── .npmignore
+├── .devops-custom.json     (config default)
 ├── README.md
 ├── package.json              (vanilla, sin Redis/BullMQ)
-├── tsconfig.json             (copia de adba, rootDir: src)
-├── tsconfig.esm.json         (copia de adba)
-├── jest.config.ts            (copia de adba)
-├── typedoc.json              (copia de adba)
+├── tsconfig.json             (rootDir: src)
+├── tsconfig.esm.json
+├── jest.config.ts
+├── typedoc.json
 └── yarn.lock
 ```
 
@@ -124,10 +124,9 @@ for (const repo of repos) {
 }
 ```
 
-### ✅ **Basado en estructura de `adba`**
-- Copiar: .babelrc, tsconfig.json, jest.config.ts, typedoc.json
-- NO copiar: node_modules, src/, __tests__/, dist/
-- Adaptar package.json para diablito-deploy (vanilla)
+### ✅ **Estructura de Configuración**
+- Todos los archivos de configuración están estructurados para soporte dual CommonJS/ESM
+- Los archivos de build y testing están preconfigurados y listos para expandir
 
 ### ✅ **Usar Git si existe**
 - Si hay `.git/` en el directorio, usarlo para publicar en npm
@@ -192,18 +191,18 @@ START daemon
 - Node.js 18+
 
 // CLI
-- Yargs (similar a adba)
+- Yargs
 
 // Git & PM2
 - simple-git (wrapper Git)
 - pm2 (ya tienes instalado)
 
 // Utilities
-- Pino o Winston (logging, como adba)
+- Pino (structured logging)
 - Dotenv (config desde .env)
 
 // Testing (Fase 3)
-- Jest (como adba)
+- Jest
 - ts-jest
 ```
 
@@ -298,7 +297,7 @@ const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 ### 7. **Config por proyecto**
 ```json
-// .diablito-deploy.json
+// .devops-custom.json
 {
   "branch": "main",
   "build": "yarn build",
@@ -310,40 +309,38 @@ const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 ---
 
-## 📦 Estructura del Proyecto (Basada en `adba`)
+## 📦 Estructura del Proyecto
 
-### Archivos a Copiar de `adba`
+### Archivos Principales
 ```
-De: ~/dev/adba                    → A: /home/diablo/dev/devops-custom
+✅ .babelrc                  - Babel configuration
+✅ .gitignore                - Git ignore rules (+ .env, + dist/)
+✅ .npmignore                - NPM publish filter
+✅ tsconfig.json             - TypeScript CommonJS compilation (rootDir: ./src)
+✅ tsconfig.esm.json         - TypeScript ESM compilation
+✅ jest.config.ts            - Unit tests configuration
+✅ jest.config.e2e.ts        - E2E tests configuration
+✅ typedoc.json              - TypeDoc documentation generator
+✅ package.json              - Project manifest (vanilla, no external queues)
+✅ yarn.lock                 - Dependency lock file
 
-✅ .babelrc
-✅ .gitignore                     (+ .env, + dist/)
-✅ .npmignore
-✅ tsconfig.json                  (rootDir: ./src)
-✅ tsconfig.esm.json
-✅ jest.config.ts
-✅ typedoc.json
-✅ package.json                   (adaptado: sin ADBA, solo diablito-deploy)
-✅ yarn.lock (si usas yarn)
-
-❌ node_modules/
-❌ __tests__/                     (haremos test propios)
-❌ src/                           (haremos src propios)
-❌ dist/
-❌ coverage/
+📁 Generated/Ignored:
+❌ node_modules/             - Installed dependencies
+❌ dist/                     - Built output
+❌ coverage/                 - Test coverage reports
 ```
 
 ### package.json Adaptado (MVP)
 ```json
 {
-  "name": "diablito-deploy",
+  "name": "devops-custom",
   "version": "0.1.0",
   "description": "Auto-update daemon para proyectos Node con Git + PM2",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
   "bin": {
-    "diablito-deploy": "dist/cjs/cli.js"
+    "devops-custom": "dist/cjs/cli.js"
   },
   "scripts": {
     "build:cjs": "tsc -p tsconfig.json",
@@ -392,13 +389,13 @@ LOG_LEVEL=info
 
 ```bash
 # Iniciar daemon
-diablito-deploy start
+devops-custom start
 
 # Escanear repos manualmente
-diablito-deploy scan
+devops-custom scan
 
 # Ver estado actual
-diablito-deploy status
+devops-custom status
 
 # En desarrollo
 yarn dev start      # dev mode
@@ -424,8 +421,8 @@ yarn test           # tests
 
 ## 🔗 Próximos Pasos
 
-1. [ ] Crear estructura del proyecto (basada en adba)
-2. [ ] Copiar archivos de config de adba
+1. [ ] Estructura del proyecto creada
+2. [ ] Configuración lista
 3. [ ] Implementar scanner de repos
 4. [ ] Implementar poller + worker
 5. [ ] Crear CLI (start/scan/status)
