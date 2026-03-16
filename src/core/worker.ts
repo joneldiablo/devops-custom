@@ -7,12 +7,14 @@ import { execSync } from 'child_process';
 import { Repository, UpdateResult, DiabliteConfig } from '../types';
 import { GitUtils } from '../utils/git';
 import { LockManager } from '../utils/lock';
+import { PM2Manager } from '../utils/pm2';
 import { logger } from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
 
 export class Worker {
   private lockManager = new LockManager();
+  private pm2Manager = new PM2Manager();
 
   /**
    * Load repository configuration
@@ -128,9 +130,20 @@ export class Worker {
       logger.info(`Building ${repo.name}`);
       this.executeCommand(buildCmd, repo.path);
 
-      // Restart with PM2
+      // Restart - use PM2Manager if PM2 command, otherwise execSync
       logger.info(`Restarting ${repo.name}`);
-      this.executeCommand(restartCmd, repo.path);
+      if (this.pm2Manager.isPM2Command(restartCmd)) {
+        const appName = this.pm2Manager.extractAppNameFromCommand(restartCmd);
+        if (appName) {
+          await this.pm2Manager.restart(appName);
+        } else {
+          logger.warn(
+            `Could not extract app name from restart command: ${restartCmd}`
+          );
+        }
+      } else {
+        this.executeCommand(restartCmd, repo.path);
+      }
 
       logger.info(`Successfully updated ${repo.name}`);
       return {
