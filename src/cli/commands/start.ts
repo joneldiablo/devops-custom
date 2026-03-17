@@ -7,6 +7,9 @@ import { PollerOptions } from '../../types';
 import { logger } from '../../utils/logger';
 
 export async function startCommand(options: PollerOptions): Promise<void> {
+  logger.info('\n================================');
+  logger.info('===== DEVOPS-CUSTOM START =====');
+  logger.info('================================');
   logger.info('Starting devops-custom daemon');
   logger.info(`Poll interval: ${options.pollInterval}ms`);
   logger.info(`Repos root: ${options.reposRoot}`);

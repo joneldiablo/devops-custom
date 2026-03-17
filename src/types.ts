@@ -15,6 +15,7 @@ export interface Repository {
 
 export interface DiabliteConfig {
   branch?: string;
+  remote?: string;
   build?: string;
   restart?: string;
   autoUpdate?: boolean;

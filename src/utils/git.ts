@@ -32,11 +32,14 @@ export class GitUtils {
    * Check if there are unpulled changes
    * Returns the count of commits ahead in remote
    */
-  async getChangeCount(branch: string = 'master'): Promise<number> {
+  async getChangeCount(
+    branch: string = 'master',
+    remote: string = 'origin'
+  ): Promise<number> {
     try {
       const result = await this.git.raw([
         'rev-list',
-        `HEAD...origin/${branch}`,
+        `HEAD...${remote}/${branch}`,
         '--count',
       ]);
       return parseInt(result.trim(), 10) || 0;
@@ -49,10 +52,10 @@ export class GitUtils {
   /**
    * Pull latest changes from remote
    */
-  async pull(branch: string = 'master'): Promise<void> {
+  async pull(remote: string = 'origin', branch: string = 'master'): Promise<void> {
     try {
-      await this.git.pull('origin', branch);
-      logger.info(`Pulled ${branch} from ${this.repoPath}`);
+      await this.git.pull(remote, branch);
+      logger.info(`Pulled ${remote}/${branch} from ${this.repoPath}`);
     } catch (error) {
       logger.error(`Pull failed for ${this.repoPath}: ${error}`);
       throw error;
@@ -73,11 +76,11 @@ export class GitUtils {
   }
 
   /**
-   * Get remote origin URL
+   * Get remote URL
    */
-  async getRemoteUrl(): Promise<string> {
+  async getRemoteUrl(remote: string = 'origin'): Promise<string> {
     try {
-      const url = await this.git.getConfig('remote.origin.url');
+      const url = await this.git.getConfig(`remote.${remote}.url`);
       return url.value || '';
     } catch (error) {
       logger.error(`Remote URL fetch failed for ${this.repoPath}: ${error}`);
@@ -86,13 +89,33 @@ export class GitUtils {
   }
 
   /**
+   * Check whether a git remote exists by name
+   */
+  async hasRemote(remote: string = 'origin'): Promise<boolean> {
+    try {
+      const result = await this.git.raw(['remote']);
+      const remotes = result
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+      return remotes.includes(remote);
+    } catch (error) {
+      logger.warn(`Remote check failed for ${this.repoPath}: ${error}`);
+      return false;
+    }
+  }
+
+  /**
    * Check if repo has unpushed local commits
    */
-  async hasUnpushedChanges(branch: string = 'master'): Promise<boolean> {
+  async hasUnpushedChanges(
+    branch: string = 'master',
+    remote: string = 'origin'
+  ): Promise<boolean> {
     try {
       const result = await this.git.raw([
         'rev-list',
-        `origin/${branch}...HEAD`,
+        `${remote}/${branch}...HEAD`,
         '--count',
       ]);
       return parseInt(result.trim(), 10) > 0;

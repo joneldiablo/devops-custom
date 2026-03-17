@@ -31,6 +31,7 @@ describe('Worker', () => {
       fetch: jest.fn().mockResolvedValue(undefined),
       pull: jest.fn().mockResolvedValue(undefined),
       getChangeCount: jest.fn().mockResolvedValue(1),
+      hasRemote: jest.fn().mockResolvedValue(true),
       getCurrentBranch: jest.fn().mockResolvedValue('main'),
     };
 
@@ -73,7 +74,7 @@ describe('Worker', () => {
       expect(result.success).toBe(true);
       expect(result.repository).toBe('test-repo');
       expect(mockGit.fetch).toHaveBeenCalled();
-      expect(mockGit.pull).toHaveBeenCalled();
+      expect(mockGit.pull).toHaveBeenCalledWith('origin', 'master');
       expect(execSync).toHaveBeenCalled();
     });
 
@@ -263,8 +264,29 @@ describe('Worker', () => {
 
       await worker.updateRepository(repo);
 
-      // Uses default branch 'master' since fs.existsSync returns false
-      expect(mockGit.pull).toHaveBeenCalledWith('master');
+      // Uses default remote/branch from merged config
+      expect(mockGit.pull).toHaveBeenCalledWith('origin', 'master');
+    });
+
+    it('should skip update when configured remote does not exist', async () => {
+      mockGit.hasRemote.mockResolvedValueOnce(false);
+
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      const result = await worker.updateRepository(repo);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('does not exist');
+      expect(mockGit.pull).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('remote "origin" does not exist')
+      );
     });
 
     it('should log successful update', async () => {
