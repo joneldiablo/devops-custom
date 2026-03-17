@@ -14,6 +14,7 @@
     "build:cjs": "tsc -p tsconfig.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build": "yarn test && rm -rf dist/* && yarn build:cjs && yarn build:esm && typedoc",
+    "build:prod": "rm -rf dist/* && yarn build:cjs && yarn build:esm",
     "dev": "ts-node src/cli.ts",
     "dev:watch": "ts-node --watch src/cli.ts",
     "test": "jest --coverage",
