@@ -47,7 +47,7 @@ export class Worker {
     const defaultConfig: DiabliteConfig = {
       branch: 'master',
       remote: 'origin',
-      build: 'yarn install && yarn build',
+      build: 'yarn install; yarn build',
       autoUpdate: true,
       enabled: true,
     };
@@ -78,10 +78,33 @@ export class Worker {
    */
   private executeCommand(command: string, cwd: string): string {
     try {
-      const result = execSync(command, { cwd, encoding: 'utf-8' });
-      return result;
+      execSync(command, {
+        cwd,
+        encoding: 'utf-8',
+        stdio: 'inherit',
+      });
+      return '';
     } catch (error: any) {
       throw new Error(`Command failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Execute build script and evaluate success from the last executed command.
+   */
+  private executeBuildCommand(command: string, cwd: string): boolean {
+    const wrappedCommand = `set +e\n${command}\nexit $?`;
+
+    try {
+      execSync(wrappedCommand, {
+        cwd,
+        encoding: 'utf-8',
+        stdio: 'inherit',
+        shell: '/bin/bash',
+      });
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -145,7 +168,7 @@ export class Worker {
     const branch = config.branch || 'master';
     const remote = config.remote || 'origin';
     const buildCmd =
-      config.build === undefined ? 'yarn install && yarn build' : config.build.trim();
+      config.build === undefined ? 'yarn install; yarn build' : config.build.trim();
     const restartCmd =
       config.restart ||
       `pm2 restart ${await this.pm2Manager.getAppNameByRepoPath(repo.path)}`;
@@ -156,7 +179,7 @@ export class Worker {
       let pullExecuted = false;
 
       // Fetch latest
-      this.logStage('fetching', repo.name);
+      logger.info(`Fetching for ${repo.name}`);
       await git.fetch();
 
       // Validate remote before attempting pull/update
@@ -201,7 +224,12 @@ export class Worker {
       } else {
         this.logStage('build', repo.name);
         logger.info(`Building ${repo.name}`);
-        this.executeCommand(buildCmd, repo.path);
+        const buildSucceeded = this.executeBuildCommand(buildCmd, repo.path);
+        if (!buildSucceeded) {
+          throw new Error(
+            `Build failed for ${repo.name}: last executed build command returned non-zero`
+          );
+        }
         buildExecuted = true;
       }
 

@@ -188,11 +188,16 @@ describe('Worker', () => {
 
       await worker.updateRepository(repo);
 
-      // Default build command is 'yarn install && yarn build'
-      expect(execSync).toHaveBeenCalledWith('yarn install && yarn build', {
-        cwd: '/test/repo',
-        encoding: 'utf-8',
-      });
+      // Default build command is wrapped to evaluate last executed command status
+      expect(execSync).toHaveBeenCalledWith(
+        expect.stringContaining('yarn install; yarn build'),
+        expect.objectContaining({
+          cwd: '/test/repo',
+          encoding: 'utf-8',
+          stdio: 'inherit',
+          shell: '/bin/bash',
+        })
+      );
     });
 
     it('should execute restart command', async () => {
