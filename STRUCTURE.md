@@ -135,7 +135,7 @@ POLL_INTERVAL=300000 yarn dev start --poll-interval 20000  # Uses 20000
 
 □ Git utilities (src/utils/git.ts)
   - git fetch --all --prune
-  - git rev-list HEAD...origin/master --count
+  - git rev-list HEAD..origin/master --count
   - git pull
   - getCurrentBranch()
   - getRemoteUrl()

@@ -39,7 +39,7 @@ export class GitUtils {
     try {
       const result = await this.git.raw([
         'rev-list',
-        `HEAD...${remote}/${branch}`,
+        `HEAD..${remote}/${branch}`,
         '--count',
       ]);
       return parseInt(result.trim(), 10) || 0;

@@ -347,7 +347,7 @@ describe('Git Utilities', () => {
 
       expect(hasChanges).toBe(true);
       expect(mockGit.revList).toHaveBeenCalledWith(
-        ['HEAD...origin/main', '--count']
+        ['HEAD..origin/main', '--count']
       );
     });
 

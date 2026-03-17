@@ -153,7 +153,7 @@ START daemon
   │  │
   │  └─ FOR EACH repo in repos[] (SECUENCIAL)
   │     ├─ git fetch --all --prune
-  │     ├─ git rev-list HEAD...origin/master --count
+  │     ├─ git rev-list HEAD..origin/master --count
   │     │
   │     ├─ IF changes > 0
   │     │  ├─ Adquirir lock (.deploying)
@@ -280,7 +280,7 @@ if (fs.existsSync(lockFile)) {
 
 ### 5. **Detectar cambios eficientemente**
 ```typescript
-const count = await git.revList(['HEAD...origin/master', '--count']);
+const count = await git.revList(['HEAD..origin/master', '--count']);
 if (parseInt(count) > 0) {
   // Hay cambios
 }

@@ -139,7 +139,7 @@ const expandPath = (p: string) => p.replace('~', home);
 ```typescript
 const result = await this.git.raw([
   'rev-list',
-  `HEAD...origin/${branch}`,
+  `HEAD..origin/${branch}`,
   '--count',
 ]);
 ```

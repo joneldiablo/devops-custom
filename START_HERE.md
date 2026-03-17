@@ -88,7 +88,7 @@ Implement in this order:
 
 2. **`src/utils/git.ts`**
    - `git fetch --all --prune`
-   - `git rev-list HEAD...origin/master --count` (detect changes)
+   - `git rev-list HEAD..origin/master --count` (detect changes)
    - `git pull`
    - `getCurrentBranch()`, `getRemoteUrl()`
    - Use `simple-git` library
