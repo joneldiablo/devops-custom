@@ -15,6 +15,22 @@ import path from 'path';
 export class Worker {
   private lockManager = new LockManager();
   private pm2Manager = new PM2Manager();
+  private runtimeProjectMarkers = [
+    'package.json',
+    'deno.json',
+    'deno.jsonc',
+    'bunfig.toml',
+  ];
+
+  private runtimeCommandPatterns = [
+    /^npm(\s|$)/i,
+    /^npx(\s|$)/i,
+    /^yarn(\s|$)/i,
+    /^pnpm(\s|$)/i,
+    /^node(\s|$)/i,
+    /^bun(\s|$)/i,
+    /^deno(\s|$)/i,
+  ];
 
   /**
    * Load repository configuration
@@ -25,8 +41,7 @@ export class Worker {
     if (!fs.existsSync(configPath)) {
       return {
         branch: 'master',
-        build: 'yarn build',
-        restart: 'pm2 restart app',
+        build: 'yarn install && yarn build',
         autoUpdate: true,
         enabled: true,
       };
@@ -39,8 +54,7 @@ export class Worker {
       logger.warn(`Failed to load config for ${repoPath}: ${error}`);
       return {
         branch: 'master',
-        build: 'yarn build',
-        restart: 'pm2 restart app',
+        build: 'yarn install && yarn build',
         autoUpdate: true,
         enabled: true,
       };
@@ -57,6 +71,23 @@ export class Worker {
     } catch (error: any) {
       throw new Error(`Command failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Detect if repository appears to be Node/Deno/Bun based project
+   */
+  private isRuntimeProject(repoPath: string): boolean {
+    return this.runtimeProjectMarkers.some((marker) =>
+      fs.existsSync(path.join(repoPath, marker))
+    );
+  }
+
+  /**
+   * Detect commands that belong to Node/Deno/Bun tooling
+   */
+  private isRuntimeCommand(command: string): boolean {
+    const trimmed = command.trim();
+    return this.runtimeCommandPatterns.some((pattern) => pattern.test(trimmed));
   }
 
   /**
@@ -100,8 +131,11 @@ export class Worker {
     config: DiabliteConfig
   ): Promise<UpdateResult> {
     const branch = config.branch || 'master';
-    const buildCmd = config.build || 'yarn build';
-    const restartCmd = config.restart || 'pm2 restart app';
+    const buildCmd = config.build || 'yarn install && yarn build';
+    const restartCmd =
+      config.restart ||
+      `pm2 restart ${await this.pm2Manager.getAppNameByRepoPath(repo.path)}`;
+    const isRuntimeRepo = this.isRuntimeProject(repo.path);
 
     try {
       const git = new GitUtils(repo.path);
@@ -127,28 +161,40 @@ export class Worker {
       await git.pull(branch);
 
       // Run build
-      logger.info(`Building ${repo.name}`);
-      this.executeCommand(buildCmd, repo.path);
+      if (!isRuntimeRepo && this.isRuntimeCommand(buildCmd)) {
+        logger.info(
+          `Skipping runtime build command for non Node/Deno/Bun repo: ${repo.name} (${buildCmd})`
+        );
+      } else {
+        logger.info(`Building ${repo.name}`);
+        this.executeCommand(buildCmd, repo.path);
+      }
 
       // Restart - use PM2Manager if PM2 command, otherwise execSync
-      logger.info(`Restarting ${repo.name}`);
-      if (this.pm2Manager.isPM2Command(restartCmd)) {
-        const appName = this.pm2Manager.extractAppNameFromCommand(restartCmd);
-        if (appName) {
-          await this.pm2Manager.restart(appName);
-        } else {
-          logger.warn(
-            `Could not extract app name from restart command: ${restartCmd}`
-          );
-        }
+      if (!isRuntimeRepo && this.isRuntimeCommand(restartCmd)) {
+        logger.info(
+          `Skipping runtime restart command for non Node/Deno/Bun repo: ${repo.name} (${restartCmd})`
+        );
       } else {
-        this.executeCommand(restartCmd, repo.path);
+        logger.info(`Restarting ${repo.name}`);
+        if (this.pm2Manager.isPM2Command(restartCmd)) {
+          const appName = this.pm2Manager.extractAppNameFromCommand(restartCmd);
+          if (appName) {
+            await this.pm2Manager.restart(appName);
+          } else {
+            logger.warn(
+              `Could not extract app name from restart command: ${restartCmd}`
+            );
+          }
+        } else {
+          this.executeCommand(restartCmd, repo.path);
+        }
       }
 
       logger.info(`Successfully updated ${repo.name}`);
       return {
         success: true,
-        message: `Successfully pulled, built, and restarted ${repo.name}`,
+        message: `Successfully updated ${repo.name}`,
         repository: repo.name,
         timestamp: new Date(),
       };

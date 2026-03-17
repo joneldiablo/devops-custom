@@ -42,13 +42,16 @@ describe('Worker', () => {
       restart: jest.fn().mockResolvedValue({ success: true }),
       isPM2Command: jest.fn().mockReturnValue(false),
       extractAppNameFromCommand: jest.fn().mockReturnValue(null),
+      getAppNameByRepoPath: jest.fn().mockResolvedValue('test-repo'),
     };
 
     (GitUtils as jest.Mock).mockImplementation(() => mockGit);
     (LockManager as jest.Mock).mockImplementation(() => mockLock);
     (PM2Manager as jest.Mock).mockImplementation(() => mockPM2);
 
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    (fs.existsSync as jest.Mock).mockImplementation((filePath: string) =>
+      filePath.endsWith('package.json')
+    );
     (fs.readFileSync as jest.Mock).mockReturnValue('{}');
     (execSync as jest.Mock).mockReturnValue('Built successfully');
 
@@ -180,8 +183,8 @@ describe('Worker', () => {
 
       await worker.updateRepository(repo);
 
-      // Default build command is 'yarn build'
-      expect(execSync).toHaveBeenCalledWith('yarn build', {
+      // Default build command is 'yarn install && yarn build'
+      expect(execSync).toHaveBeenCalledWith('yarn install && yarn build', {
         cwd: '/test/repo',
         encoding: 'utf-8',
       });
@@ -202,6 +205,30 @@ describe('Worker', () => {
 
       // Default restart command is 'pm2 restart app' but only if it was called
       expect(execSync).toHaveBeenCalled();
+    });
+
+    it('should skip runtime commands for non Node/Deno/Bun repositories', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) =>
+        filePath.endsWith('.devops-custom.json')
+      );
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        JSON.stringify({
+          build: 'yarn install',
+          restart: 'npm run restart',
+        })
+      );
+
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      await worker.updateRepository(repo);
+
+      expect(execSync).not.toHaveBeenCalled();
     });
 
     it('should handle build command failure', async () => {
