@@ -6,8 +6,10 @@
 import { PM2Manager } from '../../src/utils/pm2';
 import { logger } from '../../src/utils/logger';
 import { execSync } from 'child_process';
+import * as pm2 from 'pm2';
 
 jest.mock('child_process');
+jest.mock('pm2');
 jest.mock('../../src/utils/logger');
 
 describe('PM2Manager', () => {
@@ -58,6 +60,35 @@ describe('PM2Manager', () => {
 
       expect(result.success).toBe(false);
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getAppNameByRepoPath()', () => {
+    it('should resolve app name from pm_cwd', async () => {
+      (pm2.connect as jest.Mock).mockImplementation((cb: any) => cb(null));
+      (pm2.disconnect as jest.Mock).mockImplementation(() => {});
+      (pm2.list as jest.Mock).mockImplementation((cb: any) =>
+        cb(null, [
+          {
+            name: 'api-service',
+            pm2_env: { pm_cwd: '/srv/api-service' },
+          },
+        ])
+      );
+
+      const appName = await pm2Manager.getAppNameByRepoPath('/srv/api-service');
+
+      expect(appName).toBe('api-service');
+    });
+
+    it('should fallback to folder name when app not found', async () => {
+      (pm2.connect as jest.Mock).mockImplementation((cb: any) => cb(null));
+      (pm2.disconnect as jest.Mock).mockImplementation(() => {});
+      (pm2.list as jest.Mock).mockImplementation((cb: any) => cb(null, []));
+
+      const appName = await pm2Manager.getAppNameByRepoPath('/srv/my-project');
+
+      expect(appName).toBe('my-project');
     });
   });
 

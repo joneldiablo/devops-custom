@@ -5,6 +5,8 @@
  */
 
 import { execSync } from 'child_process';
+import path from 'path';
+import type { ProcessDescription } from 'pm2';
 import { logger } from './logger';
 
 export interface PM2RestartResult {
@@ -14,6 +16,66 @@ export interface PM2RestartResult {
 }
 
 export class PM2Manager {
+  /**
+   * Try to resolve PM2 app name using repository path.
+   * Falls back to folder name if no PM2 process matches the path.
+   */
+  async getAppNameByRepoPath(repoPath: string): Promise<string> {
+    const normalizedRepoPath = path.resolve(repoPath);
+
+    try {
+      const processes = await this.listProcesses();
+      const processByCwd = processes.find((proc) => {
+        const cwd = proc.pm2_env?.pm_cwd;
+        return cwd ? path.resolve(cwd) === normalizedRepoPath : false;
+      });
+
+      if (processByCwd?.name) {
+        return processByCwd.name;
+      }
+
+      const processByExecPath = processes.find((proc) => {
+        const execPath = proc.pm2_env?.pm_exec_path;
+        if (!execPath) return false;
+        return path.dirname(path.resolve(execPath)) === normalizedRepoPath;
+      });
+
+      if (processByExecPath?.name) {
+        return processByExecPath.name;
+      }
+    } catch (error: any) {
+      logger.warn(
+        `Could not resolve PM2 app from path ${repoPath}, using folder name: ${error.message}`
+      );
+    }
+
+    return path.basename(normalizedRepoPath);
+  }
+
+  private async listProcesses(): Promise<ProcessDescription[]> {
+    const pm2 = require('pm2') as typeof import('pm2');
+
+    return await new Promise((resolve, reject) => {
+      pm2.connect((connectError) => {
+        if (connectError) {
+          reject(connectError);
+          return;
+        }
+
+        pm2.list((listError, processDescriptionList) => {
+          pm2.disconnect();
+
+          if (listError) {
+            reject(listError);
+            return;
+          }
+
+          resolve(processDescriptionList || []);
+        });
+      });
+    });
+  }
+
   /**
    * Restart a PM2 process by app name
    * Useful when repo config has explicit pm2 app name

@@ -31,8 +31,7 @@ export class Scanner {
     if (!fs.existsSync(configPath)) {
       return {
         branch: 'master',
-        build: 'yarn build',
-        restart: 'pm2 restart app',
+        build: 'yarn install && yarn build',
         autoUpdate: true,
         enabled: true,
       };
@@ -45,8 +44,7 @@ export class Scanner {
       logger.warn(`Failed to parse config at ${configPath}: ${error}`);
       return {
         branch: 'master',
-        build: 'yarn build',
-        restart: 'pm2 restart app',
+        build: 'yarn install && yarn build',
         autoUpdate: true,
         enabled: true,
       };
