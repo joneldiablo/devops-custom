@@ -3,7 +3,7 @@
  * Manages git pull, build execution, and PM2 restarts
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { Repository, UpdateResult, DiabliteConfig } from '../types';
 import { GitUtils } from '../utils/git';
 import { LockManager } from '../utils/lock';
@@ -90,22 +90,30 @@ export class Worker {
   }
 
   /**
-   * Execute build script and evaluate success from the last executed command.
+   * Execute build script in a dedicated subprocess and resolve on completion.
    */
-  private executeBuildCommand(command: string, cwd: string): boolean {
-    const wrappedCommand = `set +e\n${command}\nexit $?`;
-
-    try {
-      execSync(wrappedCommand, {
+  private async executeBuildCommand(command: string, cwd: string): Promise<boolean> {
+    return await new Promise((resolve) => {
+      const buildProcess = spawn('/bin/bash', ['-lc', command], {
         cwd,
-        encoding: 'utf-8',
-        stdio: 'inherit',
-        shell: '/bin/bash',
+        stdio: 'ignore',
       });
-      return true;
-    } catch {
-      return false;
-    }
+
+      buildProcess.on('error', (error) => {
+        logger.error(`Build subprocess failed to start: ${error.message}`);
+        resolve(false);
+      });
+
+      buildProcess.on('close', (code, signal) => {
+        if (signal) {
+          logger.error(`Build subprocess terminated by signal: ${signal}`);
+          resolve(false);
+          return;
+        }
+
+        resolve(code === 0);
+      });
+    });
   }
 
   /**
@@ -230,7 +238,7 @@ export class Worker {
       } else {
         this.logStage('build', repo.name);
         logger.info(`Building ${repo.name}`);
-        const buildSucceeded = this.executeBuildCommand(buildCmd, repo.path);
+        const buildSucceeded = await this.executeBuildCommand(buildCmd, repo.path);
         if (!buildSucceeded) {
           throw new Error(
             `Build failed for ${repo.name}: last executed build command returned non-zero`

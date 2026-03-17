@@ -9,7 +9,8 @@ import { LockManager } from '../../src/utils/lock';
 import { PM2Manager } from '../../src/utils/pm2';
 import { logger } from '../../src/utils/logger';
 import * as fs from 'fs';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { EventEmitter } from 'events';
 
 jest.mock('../../src/utils/git');
 jest.mock('../../src/utils/lock');
@@ -57,6 +58,11 @@ describe('Worker', () => {
     );
     (fs.readFileSync as jest.Mock).mockReturnValue('{}');
     (execSync as jest.Mock).mockReturnValue('Built successfully');
+    (spawn as jest.Mock).mockImplementation(() => {
+      const proc = new EventEmitter() as any;
+      process.nextTick(() => proc.emit('close', 0, null));
+      return proc;
+    });
 
     worker = new Worker();
   });
@@ -192,14 +198,12 @@ describe('Worker', () => {
 
       await worker.updateRepository(repo);
 
-      // Default build command is wrapped to evaluate last executed command status
-      expect(execSync).toHaveBeenCalledWith(
-        expect.stringContaining('yarn install; yarn build'),
+      expect(spawn).toHaveBeenCalledWith(
+        '/bin/bash',
+        ['-lc', 'yarn install; yarn build'],
         expect.objectContaining({
           cwd: '/test/repo',
-          encoding: 'utf-8',
-          stdio: 'inherit',
-          shell: '/bin/bash',
+          stdio: 'ignore',
         })
       );
     });
@@ -246,8 +250,10 @@ describe('Worker', () => {
     });
 
     it('should handle build command failure', async () => {
-      (execSync as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Build failed');
+      (spawn as jest.Mock).mockImplementationOnce(() => {
+        const proc = new EventEmitter() as any;
+        process.nextTick(() => proc.emit('close', 1, null));
+        return proc;
       });
 
       const repo = {
