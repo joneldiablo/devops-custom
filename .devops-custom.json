@@ -1,7 +1,7 @@
 {
   "branch": "master",
   "remote": "origin",
-  "build": "yarn install && yarn build:prod",
+  "build": "yarn build:prod",
   "autoUpdate": true,
   "enabled": true
 }

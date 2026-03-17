@@ -29,11 +29,17 @@ import { statusCommand } from './cli/commands/status';
 function getConfigFromEnv(): Partial<PollerOptions> {
   const home = process.env.HOME || process.env.USERPROFILE || '~';
   const expandPath = (p: string) => p.replace('~', home);
+  const parseBoolean = (value: string | undefined, defaultValue: boolean): boolean => {
+    if (value === undefined) return defaultValue;
+    return !['false', '0', 'no', 'off'].includes(value.toLowerCase());
+  };
 
   return {
     pollInterval: parseInt(process.env.POLL_INTERVAL || '300000', 10),
     reposRoot: expandPath(process.env.REPOS_ROOT || '~/projects'),
     logLevel: (process.env.LOG_LEVEL || 'info') as any,
+    loadBashrc: parseBoolean(process.env.LOAD_BASHRC, true),
+    bashrcPath: process.env.BASHRC_PATH || '~/.bashrc',
   };
 }
 
@@ -66,12 +72,24 @@ cli
           description: 'Log level (debug, info, warn, error)',
           default: baseConfig.logLevel,
           choices: ['debug', 'info', 'warn', 'error'],
+        })
+        .option('load-bashrc', {
+          type: 'boolean',
+          description: 'Load bashrc before running build command subprocess',
+          default: baseConfig.loadBashrc,
+        })
+        .option('bashrc-path', {
+          type: 'string',
+          description: 'Bashrc path to source before build command',
+          default: baseConfig.bashrcPath,
         }),
     async (argv) => {
       const config: PollerOptions = {
         pollInterval: argv['poll-interval'] as number,
         reposRoot: argv['repos-root'] as string,
         logLevel: argv['log-level'] as any,
+        loadBashrc: argv['load-bashrc'] as boolean,
+        bashrcPath: argv['bashrc-path'] as string,
       };
 
       await startCommand(config);

@@ -7,6 +7,13 @@ import { PollerOptions } from '../../types';
 import { logger } from '../../utils/logger';
 
 export async function startCommand(options: PollerOptions): Promise<void> {
+  if (options.loadBashrc !== undefined) {
+    process.env.LOAD_BASHRC = String(options.loadBashrc);
+  }
+  if (options.bashrcPath) {
+    process.env.BASHRC_PATH = options.bashrcPath;
+  }
+
   logger.info('\n================================');
   logger.info('===== DEVOPS-CUSTOM START =====');
   logger.info('================================');
@@ -14,6 +21,8 @@ export async function startCommand(options: PollerOptions): Promise<void> {
   logger.info(`Poll interval: ${options.pollInterval}ms`);
   logger.info(`Repos root: ${options.reposRoot}`);
   logger.info(`Log level: ${options.logLevel}`);
+  logger.info(`Load bashrc: ${process.env.LOAD_BASHRC}`);
+  logger.info(`Bashrc path: ${process.env.BASHRC_PATH}`);
 
   const poller = new Poller();
 
