@@ -58,7 +58,7 @@ describe('GitUtils', () => {
       expect(count).toBe(5);
       expect(mockGitInstance.raw).toHaveBeenCalledWith([
         'rev-list',
-        'HEAD...origin/main',
+        'HEAD..origin/main',
         '--count',
       ]);
     });
@@ -86,7 +86,7 @@ describe('GitUtils', () => {
       await git.getChangeCount();
 
       expect(mockGitInstance.raw).toHaveBeenCalledWith(
-        expect.arrayContaining(['HEAD...origin/master'])
+        expect.arrayContaining(['HEAD..origin/master'])
       );
     });
   });

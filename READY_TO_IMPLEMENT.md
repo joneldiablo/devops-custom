@@ -115,7 +115,7 @@ REPOS_ROOT=~/my-repos yarn dev start --poll-interval 20000
 
 2️⃣  src/utils/git.ts
     - git fetch --all --prune
-    - git rev-list HEAD...origin/master --count
+    - git rev-list HEAD..origin/master --count
     - git pull
     - getCurrentBranch()
     - getRemoteUrl()
