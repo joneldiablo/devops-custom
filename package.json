@@ -1,6 +1,6 @@
 {
   "name": "devops-custom",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Auto-update daemon para proyectos Node con Git + PM2",
   "author": "diablito",
   "license": "ISC",
