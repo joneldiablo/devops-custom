@@ -96,21 +96,11 @@ export class Worker {
    */
   private async executeBuildCommand(command: string, cwd: string): Promise<boolean> {
     return await new Promise((resolve) => {
-      const sourceBashrcLine = this.loadBashrc
-        ? `[ -f "${this.bashrcPath}" ] && source "${this.bashrcPath}"`
-        : '# bashrc loading disabled';
-      const wrappedCommand = `set +m
-${sourceBashrcLine}
-${command}
-cmd_status=$?
-wait
-wait_status=$?
-if [ "$cmd_status" -ne 0 ]; then
-  exit "$cmd_status"
-fi
-exit "$wait_status"`;
+      const commandToRun = this.loadBashrc
+        ? `[ -f "${this.bashrcPath}" ] && source "${this.bashrcPath}"\n${command}`
+        : command;
 
-      const buildProcess = spawn('/bin/bash', ['-lc', wrappedCommand], {
+      const buildProcess = spawn('/bin/bash', ['-lc', commandToRun], {
         cwd,
         stdio: 'ignore',
         detached: false,

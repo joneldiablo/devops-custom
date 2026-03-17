@@ -38,7 +38,7 @@ function getConfigFromEnv(): Partial<PollerOptions> {
     pollInterval: parseInt(process.env.POLL_INTERVAL || '300000', 10),
     reposRoot: expandPath(process.env.REPOS_ROOT || '~/projects'),
     logLevel: (process.env.LOG_LEVEL || 'info') as any,
-    loadBashrc: parseBoolean(process.env.LOAD_BASHRC, true),
+    loadBashrc: parseBoolean(process.env.LOAD_BASHRC, false),
     bashrcPath: process.env.BASHRC_PATH || '~/.bashrc',
   };
 }
