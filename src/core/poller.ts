@@ -63,6 +63,7 @@ export class Poller {
       }
 
       logger.debug(`Poll cycle starting: ${repos.length} repos`);
+      logger.info('\n===== FETCHING :: ALL REPOS =====');
 
       // CRITICAL: Sequential loop - one repo at a time
       for (const repo of repos) {

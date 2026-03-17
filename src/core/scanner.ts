@@ -34,7 +34,7 @@ export class Scanner {
     const defaultConfig: DiabliteConfig = {
       branch: 'master',
       remote: 'origin',
-      build: 'yarn install && yarn build',
+      build: 'yarn install; yarn build',
       autoUpdate: true,
       enabled: true,
     };
