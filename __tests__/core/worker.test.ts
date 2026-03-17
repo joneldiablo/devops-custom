@@ -29,7 +29,9 @@ describe('Worker', () => {
 
     mockGit = {
       fetch: jest.fn().mockResolvedValue(undefined),
+      discardLocalChanges: jest.fn().mockResolvedValue(undefined),
       pull: jest.fn().mockResolvedValue(undefined),
+      getLatestCommitMessage: jest.fn().mockResolvedValue('feat: update deps'),
       getChangeCount: jest.fn().mockResolvedValue(1),
       hasRemote: jest.fn().mockResolvedValue(true),
       getCurrentBranch: jest.fn().mockResolvedValue('main'),
@@ -74,7 +76,9 @@ describe('Worker', () => {
       expect(result.success).toBe(true);
       expect(result.repository).toBe('test-repo');
       expect(mockGit.fetch).toHaveBeenCalled();
+      expect(mockGit.discardLocalChanges).toHaveBeenCalled();
       expect(mockGit.pull).toHaveBeenCalledWith('origin', 'master');
+      expect(mockGit.getLatestCommitMessage).toHaveBeenCalled();
       expect(execSync).toHaveBeenCalled();
     });
 
@@ -362,6 +366,22 @@ describe('Worker', () => {
 
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining('Successfully updated test-repo')
+      );
+    });
+
+    it('should log latest commit message after pull', async () => {
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      await worker.updateRepository(repo);
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Latest commit for test-repo: feat: update deps'
       );
     });
   });

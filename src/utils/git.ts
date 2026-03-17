@@ -50,6 +50,19 @@ export class GitUtils {
   }
 
   /**
+   * Discard tracked local changes before pulling
+   */
+  async discardLocalChanges(): Promise<void> {
+    try {
+      await this.git.raw(['checkout', '.']);
+      logger.info(`Discarded local tracked changes in ${this.repoPath}`);
+    } catch (error) {
+      logger.error(`Failed to discard local changes for ${this.repoPath}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Pull latest changes from remote
    */
   async pull(remote: string = 'origin', branch: string = 'master'): Promise<void> {
@@ -59,6 +72,19 @@ export class GitUtils {
     } catch (error) {
       logger.error(`Pull failed for ${this.repoPath}: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Get latest local commit message
+   */
+  async getLatestCommitMessage(): Promise<string> {
+    try {
+      const result = await this.git.raw(['log', '-1', '--pretty=%s']);
+      return result.trim();
+    } catch (error) {
+      logger.warn(`Latest commit message fetch failed for ${this.repoPath}: ${error}`);
+      return '';
     }
   }
 

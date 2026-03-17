@@ -116,6 +116,50 @@ describe('GitUtils', () => {
     });
   });
 
+  describe('discardLocalChanges()', () => {
+    it('should run git checkout dot', async () => {
+      mockGitInstance.raw.mockResolvedValueOnce('');
+
+      await git.discardLocalChanges();
+
+      expect(mockGitInstance.raw).toHaveBeenCalledWith(['checkout', '.']);
+      expect(logger.info).toHaveBeenCalledWith(
+        'Discarded local tracked changes in /test/repo'
+      );
+    });
+
+    it('should throw when checkout fails', async () => {
+      mockGitInstance.raw.mockRejectedValueOnce(new Error('Checkout failed'));
+
+      await expect(git.discardLocalChanges()).rejects.toThrow('Checkout failed');
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getLatestCommitMessage()', () => {
+    it('should return latest commit message', async () => {
+      mockGitInstance.raw.mockResolvedValueOnce('feat: add updater\n');
+
+      const message = await git.getLatestCommitMessage();
+
+      expect(message).toBe('feat: add updater');
+      expect(mockGitInstance.raw).toHaveBeenCalledWith([
+        'log',
+        '-1',
+        '--pretty=%s',
+      ]);
+    });
+
+    it('should return empty string when git log fails', async () => {
+      mockGitInstance.raw.mockRejectedValueOnce(new Error('Git error'));
+
+      const message = await git.getLatestCommitMessage();
+
+      expect(message).toBe('');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
+
   describe('getCurrentBranch()', () => {
     it('should return current branch name', async () => {
       mockGitInstance.revparse.mockResolvedValueOnce('main\n');

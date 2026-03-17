@@ -209,8 +209,14 @@ export class Worker {
 
       // Pull changes
       this.logStage('pulling', repo.name);
+      logger.info(`Discarding local tracked changes before pull for ${repo.name}`);
+      await git.discardLocalChanges();
       logger.info(`Pulling ${remote}/${branch} for ${repo.name}`);
       await git.pull(remote, branch);
+      const latestCommitMessage = await git.getLatestCommitMessage();
+      if (latestCommitMessage) {
+        logger.info(`Latest commit for ${repo.name}: ${latestCommitMessage}`);
+      }
       pullExecuted = true;
 
       // Run build
