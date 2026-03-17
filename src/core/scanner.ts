@@ -15,6 +15,10 @@ export class Scanner {
   private repos: Repository[] = [];
   private scanTimeout = 24 * 60 * 60 * 1000; // 24 hours
 
+  private logStage(stage: string, target: string): void {
+    logger.info(`\n===== ${stage.toUpperCase()} :: ${target} =====`);
+  }
+
   /**
    * Check if a directory is a git repository
    */
@@ -27,27 +31,32 @@ export class Scanner {
    */
   private loadRepoConfig(repoPath: string): DiabliteConfig {
     const configPath = path.join(repoPath, '.devops-custom.json');
+    const defaultConfig: DiabliteConfig = {
+      branch: 'master',
+      remote: 'origin',
+      build: 'yarn install && yarn build',
+      autoUpdate: true,
+      enabled: true,
+    };
     
     if (!fs.existsSync(configPath)) {
-      return {
-        branch: 'master',
-        build: 'yarn install && yarn build',
-        autoUpdate: true,
-        enabled: true,
-      };
+      return defaultConfig;
     }
 
     try {
       const content = fs.readFileSync(configPath, 'utf-8');
-      return JSON.parse(content);
+      const parsedConfig = JSON.parse(content);
+      const mergedConfig: DiabliteConfig = {
+        ...defaultConfig,
+        ...parsedConfig,
+      };
+      logger.info(
+        `Loaded .devops-custom.json for ${repoPath}: ${JSON.stringify(mergedConfig)}`
+      );
+      return mergedConfig;
     } catch (error) {
       logger.warn(`Failed to parse config at ${configPath}: ${error}`);
-      return {
-        branch: 'master',
-        build: 'yarn install && yarn build',
-        autoUpdate: true,
-        enabled: true,
-      };
+      return defaultConfig;
     }
   }
 
@@ -121,6 +130,7 @@ export class Scanner {
       return this.repos;
     }
 
+    this.logStage('searching', reposRoot);
     logger.info(`Scanning for repos in ${reposRoot}`);
     const expandedRoot = this.expandPath(reposRoot);
 

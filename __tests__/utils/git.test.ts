@@ -93,10 +93,12 @@ describe('GitUtils', () => {
 
   describe('pull()', () => {
     it('should pull from origin branch', async () => {
-      await git.pull('main');
+      await git.pull('origin', 'main');
 
       expect(mockGitInstance.pull).toHaveBeenCalledWith('origin', 'main');
-      expect(logger.info).toHaveBeenCalledWith('Pulled main from /test/repo');
+      expect(logger.info).toHaveBeenCalledWith(
+        'Pulled origin/main from /test/repo'
+      );
     });
 
     it('should use default branch if not specified', async () => {
@@ -109,7 +111,7 @@ describe('GitUtils', () => {
       const error = new Error('Merge conflict');
       mockGitInstance.pull.mockRejectedValueOnce(error);
 
-      await expect(git.pull('main')).rejects.toThrow('Merge conflict');
+      await expect(git.pull('origin', 'main')).rejects.toThrow('Merge conflict');
       expect(logger.error).toHaveBeenCalled();
     });
   });
@@ -193,6 +195,34 @@ describe('GitUtils', () => {
       const hasPending = await git.hasUnpushedChanges('main');
 
       expect(hasPending).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe('hasRemote()', () => {
+    it('should return true when remote exists', async () => {
+      mockGitInstance.raw.mockResolvedValueOnce('origin\nupstream\n');
+
+      const hasRemote = await git.hasRemote('origin');
+
+      expect(hasRemote).toBe(true);
+      expect(mockGitInstance.raw).toHaveBeenCalledWith(['remote']);
+    });
+
+    it('should return false when remote does not exist', async () => {
+      mockGitInstance.raw.mockResolvedValueOnce('upstream\n');
+
+      const hasRemote = await git.hasRemote('origin');
+
+      expect(hasRemote).toBe(false);
+    });
+
+    it('should handle errors gracefully', async () => {
+      mockGitInstance.raw.mockRejectedValueOnce(new Error('Git error'));
+
+      const hasRemote = await git.hasRemote('origin');
+
+      expect(hasRemote).toBe(false);
       expect(logger.warn).toHaveBeenCalled();
     });
   });

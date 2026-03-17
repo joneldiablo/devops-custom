@@ -33,31 +33,43 @@ export class Worker {
   ];
 
   /**
+   * Log a clear stage separator to improve terminal readability
+   */
+  private logStage(stage: string, repoName: string): void {
+    logger.info(`\n===== ${stage.toUpperCase()} :: ${repoName} =====`);
+  }
+
+  /**
    * Load repository configuration
    */
   private loadRepoConfig(repoPath: string): DiabliteConfig {
     const configPath = path.join(repoPath, '.devops-custom.json');
+    const defaultConfig: DiabliteConfig = {
+      branch: 'master',
+      remote: 'origin',
+      build: 'yarn install && yarn build',
+      autoUpdate: true,
+      enabled: true,
+    };
     
     if (!fs.existsSync(configPath)) {
-      return {
-        branch: 'master',
-        build: 'yarn install && yarn build',
-        autoUpdate: true,
-        enabled: true,
-      };
+      return defaultConfig;
     }
 
     try {
       const content = fs.readFileSync(configPath, 'utf-8');
-      return JSON.parse(content);
+      const parsedConfig = JSON.parse(content);
+      const mergedConfig: DiabliteConfig = {
+        ...defaultConfig,
+        ...parsedConfig,
+      };
+      logger.info(
+        `Loaded .devops-custom.json for ${repoPath}: ${JSON.stringify(mergedConfig)}`
+      );
+      return mergedConfig;
     } catch (error) {
       logger.warn(`Failed to load config for ${repoPath}: ${error}`);
-      return {
-        branch: 'master',
-        build: 'yarn install && yarn build',
-        autoUpdate: true,
-        enabled: true,
-      };
+      return defaultConfig;
     }
   }
 
@@ -131,6 +143,7 @@ export class Worker {
     config: DiabliteConfig
   ): Promise<UpdateResult> {
     const branch = config.branch || 'master';
+    const remote = config.remote || 'origin';
     const buildCmd = config.build || 'yarn install && yarn build';
     const restartCmd =
       config.restart ||
@@ -141,11 +154,24 @@ export class Worker {
       const git = new GitUtils(repo.path);
 
       // Fetch latest
-      logger.info(`Fetching for ${repo.name}`);
+      this.logStage('fetching', repo.name);
       await git.fetch();
 
+      // Validate remote before attempting pull/update
+      const hasRemote = await git.hasRemote(remote);
+      if (!hasRemote) {
+        const skipMessage = `Skipping update for ${repo.name}: remote "${remote}" does not exist`;
+        logger.warn(skipMessage);
+        return {
+          success: false,
+          message: skipMessage,
+          repository: repo.name,
+          timestamp: new Date(),
+        };
+      }
+
       // Check for changes
-      const changeCount = await git.getChangeCount(branch);
+      const changeCount = await git.getChangeCount(branch, remote);
       if (changeCount === 0) {
         logger.debug(`No changes for ${repo.name}`);
         return {
@@ -157,8 +183,9 @@ export class Worker {
       }
 
       // Pull changes
-      logger.info(`Pulling ${branch} for ${repo.name}`);
-      await git.pull(branch);
+      this.logStage('pulling', repo.name);
+      logger.info(`Pulling ${remote}/${branch} for ${repo.name}`);
+      await git.pull(remote, branch);
 
       // Run build
       if (!isRuntimeRepo && this.isRuntimeCommand(buildCmd)) {
@@ -166,6 +193,7 @@ export class Worker {
           `Skipping runtime build command for non Node/Deno/Bun repo: ${repo.name} (${buildCmd})`
         );
       } else {
+        this.logStage('build', repo.name);
         logger.info(`Building ${repo.name}`);
         this.executeCommand(buildCmd, repo.path);
       }
@@ -176,6 +204,7 @@ export class Worker {
           `Skipping runtime restart command for non Node/Deno/Bun repo: ${repo.name} (${restartCmd})`
         );
       } else {
+        this.logStage('restart', repo.name);
         logger.info(`Restarting ${repo.name}`);
         if (this.pm2Manager.isPM2Command(restartCmd)) {
           const appName = this.pm2Manager.extractAppNameFromCommand(restartCmd);
