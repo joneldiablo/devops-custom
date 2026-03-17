@@ -15,6 +15,8 @@ import path from 'path';
 export class Worker {
   private lockManager = new LockManager();
   private pm2Manager = new PM2Manager();
+  private loadBashrc = process.env.LOAD_BASHRC !== 'false';
+  private bashrcPath = process.env.BASHRC_PATH || '~/.bashrc';
   private runtimeProjectMarkers = [
     'package.json',
     'deno.json',
@@ -47,7 +49,7 @@ export class Worker {
     const defaultConfig: DiabliteConfig = {
       branch: 'master',
       remote: 'origin',
-      build: 'yarn install; yarn build',
+      build: 'yarn build',
       autoUpdate: true,
       enabled: true,
     };
@@ -94,9 +96,24 @@ export class Worker {
    */
   private async executeBuildCommand(command: string, cwd: string): Promise<boolean> {
     return await new Promise((resolve) => {
-      const buildProcess = spawn('/bin/bash', ['-lc', command], {
+      const sourceBashrcLine = this.loadBashrc
+        ? `[ -f "${this.bashrcPath}" ] && source "${this.bashrcPath}"`
+        : '# bashrc loading disabled';
+      const wrappedCommand = `set +m
+${sourceBashrcLine}
+${command}
+cmd_status=$?
+wait
+wait_status=$?
+if [ "$cmd_status" -ne 0 ]; then
+  exit "$cmd_status"
+fi
+exit "$wait_status"`;
+
+      const buildProcess = spawn('/bin/bash', ['-lc', wrappedCommand], {
         cwd,
         stdio: 'ignore',
+        detached: false,
       });
 
       buildProcess.on('error', (error) => {
@@ -176,7 +193,7 @@ export class Worker {
     const branch = config.branch || 'master';
     const remote = config.remote || 'origin';
     const buildCmd =
-      config.build === undefined ? 'yarn install; yarn build' : config.build.trim();
+      config.build === undefined ? 'yarn build' : config.build.trim();
     const restartCmd =
       config.restart ||
       `pm2 restart ${await this.pm2Manager.getAppNameByRepoPath(repo.path)}`;

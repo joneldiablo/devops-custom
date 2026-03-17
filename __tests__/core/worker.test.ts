@@ -200,10 +200,20 @@ describe('Worker', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         '/bin/bash',
-        ['-lc', 'yarn install; yarn build'],
+        ['-lc', expect.stringContaining('source "~/.bashrc"')],
         expect.objectContaining({
           cwd: '/test/repo',
           stdio: 'ignore',
+          detached: false,
+        })
+      );
+      expect(spawn).toHaveBeenCalledWith(
+        '/bin/bash',
+        ['-lc', expect.stringContaining('yarn build')],
+        expect.objectContaining({
+          cwd: '/test/repo',
+          stdio: 'ignore',
+          detached: false,
         })
       );
     });

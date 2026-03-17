@@ -26,6 +26,8 @@ export interface PollerOptions {
   pollInterval: number; // milliseconds
   reposRoot: string;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  loadBashrc?: boolean;
+  bashrcPath?: string;
 }
 
 export interface UpdateResult {
