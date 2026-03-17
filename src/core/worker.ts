@@ -144,7 +144,8 @@ export class Worker {
   ): Promise<UpdateResult> {
     const branch = config.branch || 'master';
     const remote = config.remote || 'origin';
-    const buildCmd = config.build || 'yarn install && yarn build';
+    const buildCmd =
+      config.build === undefined ? 'yarn install && yarn build' : config.build.trim();
     const restartCmd =
       config.restart ||
       `pm2 restart ${await this.pm2Manager.getAppNameByRepoPath(repo.path)}`;
@@ -152,6 +153,7 @@ export class Worker {
 
     try {
       const git = new GitUtils(repo.path);
+      let pullExecuted = false;
 
       // Fetch latest
       this.logStage('fetching', repo.name);
@@ -186,9 +188,13 @@ export class Worker {
       this.logStage('pulling', repo.name);
       logger.info(`Pulling ${remote}/${branch} for ${repo.name}`);
       await git.pull(remote, branch);
+      pullExecuted = true;
 
       // Run build
-      if (!isRuntimeRepo && this.isRuntimeCommand(buildCmd)) {
+      let buildExecuted = false;
+      if (!buildCmd) {
+        logger.info(`Skipping build for ${repo.name}: no build command configured`);
+      } else if (!isRuntimeRepo && this.isRuntimeCommand(buildCmd)) {
         logger.info(
           `Skipping runtime build command for non Node/Deno/Bun repo: ${repo.name} (${buildCmd})`
         );
@@ -196,10 +202,17 @@ export class Worker {
         this.logStage('build', repo.name);
         logger.info(`Building ${repo.name}`);
         this.executeCommand(buildCmd, repo.path);
+        buildExecuted = true;
       }
 
       // Restart - use PM2Manager if PM2 command, otherwise execSync
-      if (!isRuntimeRepo && this.isRuntimeCommand(restartCmd)) {
+      if (!pullExecuted) {
+        logger.info(`Skipping restart for ${repo.name}: pull step was not executed`);
+      } else if (!buildExecuted) {
+        logger.info(
+          `Skipping restart for ${repo.name}: build step was not executed`
+        );
+      } else if (!isRuntimeRepo && this.isRuntimeCommand(restartCmd)) {
         logger.info(
           `Skipping runtime restart command for non Node/Deno/Bun repo: ${repo.name} (${restartCmd})`
         );

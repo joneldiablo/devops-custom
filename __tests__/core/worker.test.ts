@@ -151,6 +151,8 @@ describe('Worker', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(logger.error).toHaveBeenCalled();
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
     });
 
     it('should handle no changes scenario', async () => {
@@ -169,6 +171,8 @@ describe('Worker', () => {
       expect(result.success).toBe(true);
       expect(result.message).toContain('No changes');
       expect(mockGit.pull).not.toHaveBeenCalled();
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
     });
 
     it('should execute build command', async () => {
@@ -284,8 +288,59 @@ describe('Worker', () => {
       expect(result.success).toBe(false);
       expect(result.message).toContain('does not exist');
       expect(mockGit.pull).not.toHaveBeenCalled();
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('remote "origin" does not exist')
+      );
+    });
+
+    it('should not restart when pull fails', async () => {
+      mockGit.pull.mockRejectedValueOnce(new Error('Pull failed'));
+
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      const result = await worker.updateRepository(repo);
+
+      expect(result.success).toBe(false);
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
+    });
+
+    it('should not restart when build command is empty', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) =>
+        filePath.endsWith('.devops-custom.json')
+      );
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        JSON.stringify({
+          build: '',
+          restart: 'pm2 restart test-repo',
+        })
+      );
+      mockPM2.isPM2Command.mockReturnValue(true);
+      mockPM2.extractAppNameFromCommand.mockReturnValue('test-repo');
+
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      const result = await worker.updateRepository(repo);
+
+      expect(result.success).toBe(true);
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('build step was not executed')
       );
     });
 
