@@ -50,6 +50,7 @@ export class Worker {
       branch: 'master',
       remote: 'origin',
       build: 'yarn build',
+      pm2: true,
       autoUpdate: true,
       enabled: true,
     };
@@ -224,11 +225,16 @@ export class Worker {
   ): Promise<UpdateResult> {
     const branch = config.branch || 'master';
     const remote = config.remote || 'origin';
+    const pm2Enabled = config.pm2 !== false;
     const buildCmd =
       config.build === undefined ? 'yarn build' : config.build.trim();
-    const restartCmd =
-      config.restart ||
-      `pm2 restart ${await this.pm2Manager.getAppNameByRepoPath(repo.path)}`;
+    const configuredRestartCmd =
+      config.restart === undefined ? '' : config.restart.trim();
+    let restartCmd = configuredRestartCmd;
+    if (!restartCmd && pm2Enabled) {
+      const appName = await this.pm2Manager.getAppNameByRepoPath(repo.path);
+      restartCmd = `pm2 restart ${appName}`;
+    }
     const isRuntimeRepo = this.isRuntimeProject(repo.path);
 
     try {
@@ -302,6 +308,14 @@ export class Worker {
       } else if (!buildExecuted) {
         logger.info(
           `Skipping restart for ${repo.name}: build step was not executed`
+        );
+      } else if (!restartCmd) {
+        logger.info(
+          `Skipping restart for ${repo.name}: no restart command configured`
+        );
+      } else if (!pm2Enabled && this.pm2Manager.isPM2Command(restartCmd)) {
+        logger.info(
+          `Skipping PM2 restart for ${repo.name}: pm2 is disabled in .devops-custom.json`
         );
       } else if (!isRuntimeRepo && this.isRuntimeCommand(restartCmd)) {
         logger.info(

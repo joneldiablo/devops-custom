@@ -78,7 +78,9 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'repo1', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path.includes('repo1') && path.endsWith('.git');
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue('{}');
 
       const repos1 = await scanner.scan('/root');
@@ -100,7 +102,9 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'repo1', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path.includes('repo1') && path.endsWith('.git');
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue('{}');
 
       await scanner.scan('/root');
@@ -130,7 +134,12 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'repo', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return (
+          (path.includes('repo') && path.endsWith('.git')) ||
+          (path.includes('repo') && path.endsWith('.devops-custom.json'))
+        );
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(config));
 
       const repos = await scanner.scan('/root');
@@ -148,7 +157,9 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'repo', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path.includes('repo') && path.endsWith('.git');
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue('{ invalid JSON }');
 
       const repos = await scanner.scan('/root');
@@ -185,6 +196,26 @@ describe('Scanner', () => {
       expect(typeof callArg).toBe('string');
       expect(callArg).toContain('projects');
     });
+
+    it('should include reposRoot itself when it is a git repo', async () => {
+      const mockGitUtils = {
+        getRemoteUrl: jest.fn().mockResolvedValue('https://github.com/test/root-repo'),
+        getCurrentBranch: jest.fn().mockResolvedValue('main'),
+      };
+
+      (GitUtils as jest.Mock).mockImplementation(() => mockGitUtils);
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path === '/root/.git';
+      });
+      (fs.readFileSync as jest.Mock).mockReturnValue('{}');
+
+      const repos = await scanner.scan('/root');
+
+      expect(repos.length).toBe(1);
+      expect(repos[0].path).toBe('/root');
+      expect(repos[0].name).toBe('root');
+    });
   });
 
   describe('getRepos()', () => {
@@ -198,7 +229,9 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'repo1', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path.includes('repo1') && path.endsWith('.git');
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue('{}');
 
       await scanner.scan('/root');
@@ -219,7 +252,9 @@ describe('Scanner', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         { name: 'myrepo', isDirectory: () => true } as any,
       ]);
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as jest.Mock).mockImplementation((path: string) => {
+        return path.includes('myrepo') && path.endsWith('.git');
+      });
       (fs.readFileSync as jest.Mock).mockReturnValue('{}');
 
       await scanner.scan('/root');

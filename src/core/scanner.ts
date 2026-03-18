@@ -35,6 +35,7 @@ export class Scanner {
       branch: 'master',
       remote: 'origin',
       build: 'yarn build',
+      pm2: true,
       autoUpdate: true,
       enabled: true,
     };
@@ -61,6 +62,33 @@ export class Scanner {
   }
 
   /**
+   * Initialize repository metadata from a known git repo path
+   */
+  private async initRepository(repoPath: string): Promise<Repository | null> {
+    try {
+      const git = new GitUtils(repoPath);
+      const remoteUrl = await git.getRemoteUrl();
+      const currentBranch = await git.getCurrentBranch();
+      const config = this.loadRepoConfig(repoPath);
+
+      const repo: Repository = {
+        path: repoPath,
+        name: path.basename(repoPath),
+        remoteUrl,
+        branch: config.branch || currentBranch,
+        status: 'idle',
+        lastChecked: new Date(),
+      };
+
+      logger.info(`Found repo: ${repoPath}`);
+      return repo;
+    } catch (error) {
+      logger.warn(`Failed to initialize repo at ${repoPath}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
    * Recursively scan directory for git repositories
    * Filters out hidden directories (starting with .)
    */
@@ -81,26 +109,8 @@ export class Scanner {
         if (entry.isDirectory()) {
           // Check if this directory is a git repo
           if (this.isGitRepo(fullPath)) {
-            try {
-              const git = new GitUtils(fullPath);
-              const remoteUrl = await git.getRemoteUrl();
-              const currentBranch = await git.getCurrentBranch();
-              const config = this.loadRepoConfig(fullPath);
-
-              const repo: Repository = {
-                path: fullPath,
-                name: entry.name,
-                remoteUrl,
-                branch: config.branch || currentBranch,
-                status: 'idle',
-                lastChecked: new Date(),
-              };
-
-              repos.push(repo);
-              logger.info(`Found repo: ${fullPath}`);
-            } catch (error) {
-              logger.warn(`Failed to initialize repo at ${fullPath}: ${error}`);
-            }
+            const repo = await this.initRepository(fullPath);
+            if (repo) repos.push(repo);
           } else {
             // Recursively scan subdirectories
             const subRepos = await this.scanDirectory(fullPath);
@@ -133,8 +143,18 @@ export class Scanner {
     this.logStage('searching', reposRoot);
     logger.info(`Scanning for repos in ${reposRoot}`);
     const expandedRoot = this.expandPath(reposRoot);
+    const repos: Repository[] = [];
 
-    this.repos = await this.scanDirectory(expandedRoot);
+    // Include root itself if it is a git repository
+    if (this.isGitRepo(expandedRoot)) {
+      const rootRepo = await this.initRepository(expandedRoot);
+      if (rootRepo) repos.push(rootRepo);
+    }
+
+    const nestedRepos = await this.scanDirectory(expandedRoot);
+    repos.push(...nestedRepos);
+
+    this.repos = repos;
     this.scannedAt = new Date();
 
     logger.info(`Found ${this.repos.length} repositories`);

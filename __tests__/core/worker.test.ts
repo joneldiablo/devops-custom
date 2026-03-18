@@ -369,6 +369,36 @@ describe('Worker', () => {
       );
     });
 
+    it('should skip default PM2 restart when pm2 is disabled', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) =>
+        filePath.endsWith('.devops-custom.json') || filePath.endsWith('package.json')
+      );
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        JSON.stringify({
+          pm2: false,
+          build: 'yarn build',
+        })
+      );
+
+      const repo = {
+        path: '/test/repo',
+        name: 'test-repo',
+        remoteUrl: 'https://github.com/test/repo',
+        branch: 'main',
+        status: 'idle' as const,
+      };
+
+      const result = await worker.updateRepository(repo);
+
+      expect(result.success).toBe(true);
+      expect(mockPM2.getAppNameByRepoPath).not.toHaveBeenCalled();
+      expect(execSync).not.toHaveBeenCalled();
+      expect(mockPM2.restart).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('no restart command configured')
+      );
+    });
+
     it('should log successful update', async () => {
       const repo = {
         path: '/test/repo',
