@@ -13,17 +13,17 @@ jest.mock('../../src/core/scanner');
 jest.mock('../../src/core/worker');
 jest.mock('../../src/utils/logger');
 
-// Mock setInterval and clearInterval globally
-let mockSetIntervalId = 0;
-const mockSetInterval = jest.fn((callback: () => void, delay: number) => {
-  mockSetIntervalId++;
-  return mockSetIntervalId as unknown as NodeJS.Timeout;
+// Mock setTimeout and clearTimeout globally
+let mockSetTimeoutId = 0;
+const mockSetTimeout = jest.fn((callback: () => void, delay: number) => {
+  mockSetTimeoutId++;
+  return mockSetTimeoutId as unknown as NodeJS.Timeout;
 });
 
-const mockClearInterval = jest.fn();
+const mockClearTimeout = jest.fn();
 
-global.setInterval = mockSetInterval as any;
-global.clearInterval = mockClearInterval as any;
+global.setTimeout = mockSetTimeout as any;
+global.clearTimeout = mockClearTimeout as any;
 
 describe('Poller', () => {
   let poller: Poller;
@@ -32,9 +32,9 @@ describe('Poller', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSetInterval.mockClear();
-    mockClearInterval.mockClear();
-    mockSetIntervalId = 0;
+    mockSetTimeout.mockClear();
+    mockClearTimeout.mockClear();
+    mockSetTimeoutId = 0;
 
     mockScanner = {
       scan: jest.fn().mockResolvedValue([]),
@@ -81,7 +81,7 @@ describe('Poller', () => {
       expect(logger.warn).toHaveBeenCalledWith('Poller already running');
     });
 
-    it('should call setInterval for polling', async () => {
+    it('should call setTimeout for polling', async () => {
       const options: PollerOptions = {
         pollInterval: 5000,
         reposRoot: '/repos',
@@ -90,7 +90,7 @@ describe('Poller', () => {
 
       await poller.start(options);
 
-      expect(mockSetInterval).toHaveBeenCalledWith(
+      expect(mockSetTimeout).toHaveBeenCalledWith(
         expect.any(Function),
         5000
       );
@@ -112,7 +112,7 @@ describe('Poller', () => {
       expect(logger.info).toHaveBeenCalledWith('Poller daemon stopped');
     });
 
-    it('should call clearInterval when stopping', async () => {
+    it('should call clearTimeout when stopping', async () => {
       const options: PollerOptions = {
         pollInterval: 5000,
         reposRoot: '/repos',
@@ -122,7 +122,7 @@ describe('Poller', () => {
       await poller.start(options);
       poller.stop();
 
-      expect(mockClearInterval).toHaveBeenCalled();
+      expect(mockClearTimeout).toHaveBeenCalled();
     });
 
     it('should warn if not running', () => {

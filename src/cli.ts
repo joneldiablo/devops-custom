@@ -22,6 +22,7 @@ import { PollerOptions } from './types';
 import { startCommand } from './cli/commands/start';
 import { scanCommand } from './cli/commands/scan';
 import { statusCommand } from './cli/commands/status';
+import { buildCommand } from './cli/commands/build';
 
 /**
  * Get default config from environment variables
@@ -38,7 +39,7 @@ function getConfigFromEnv(): Partial<PollerOptions> {
     pollInterval: parseInt(process.env.POLL_INTERVAL || '300000', 10),
     reposRoot: expandPath(process.env.REPOS_ROOT || '~/projects'),
     logLevel: (process.env.LOG_LEVEL || 'info') as any,
-    loadBashrc: parseBoolean(process.env.LOAD_BASHRC, true),
+    loadBashrc: parseBoolean(process.env.LOAD_BASHRC, false),
     bashrcPath: process.env.BASHRC_PATH || '~/.bashrc',
   };
 }
@@ -93,6 +94,35 @@ cli
       };
 
       await startCommand(config);
+    }
+  )
+  .command(
+    'build',
+    'Run only build command for a specific repository path',
+    (y) =>
+      y
+        .option('repo-path', {
+          alias: 'r',
+          type: 'string',
+          description: 'Repository path where build command will run',
+          demandOption: true,
+        })
+        .option('load-bashrc', {
+          type: 'boolean',
+          description: 'Load bashrc before running build command subprocess',
+          default: baseConfig.loadBashrc,
+        })
+        .option('bashrc-path', {
+          type: 'string',
+          description: 'Bashrc path to source before build command',
+          default: baseConfig.bashrcPath,
+        }),
+    async (argv) => {
+      await buildCommand({
+        repoPath: argv['repo-path'] as string,
+        loadBashrc: argv['load-bashrc'] as boolean,
+        bashrcPath: argv['bashrc-path'] as string,
+      });
     }
   )
   .command(

@@ -96,21 +96,11 @@ export class Worker {
    */
   private async executeBuildCommand(command: string, cwd: string): Promise<boolean> {
     return await new Promise((resolve) => {
-      const sourceBashrcLine = this.loadBashrc
-        ? `[ -f "${this.bashrcPath}" ] && source "${this.bashrcPath}"`
-        : '# bashrc loading disabled';
-      const wrappedCommand = `set +m
-${sourceBashrcLine}
-${command}
-cmd_status=$?
-wait
-wait_status=$?
-if [ "$cmd_status" -ne 0 ]; then
-  exit "$cmd_status"
-fi
-exit "$wait_status"`;
+      const commandToRun = this.loadBashrc
+        ? `[ -f "${this.bashrcPath}" ] && source "${this.bashrcPath}"\n${command}`
+        : command;
 
-      const buildProcess = spawn('/bin/bash', ['-lc', wrappedCommand], {
+      const buildProcess = spawn('/bin/bash', ['-lc', commandToRun], {
         cwd,
         stdio: 'ignore',
         detached: false,
@@ -181,6 +171,48 @@ exit "$wait_status"`;
     }
 
     return lockResult;
+  }
+
+  /**
+   * Run build command only for a specific repository path
+   */
+  async runBuildOnly(
+    repoPath: string
+  ): Promise<{ success: boolean; message: string }> {
+    const repoName = path.basename(repoPath);
+    const config = this.loadRepoConfig(repoPath);
+    const buildCmd =
+      config.build === undefined ? 'yarn build' : config.build.trim();
+
+    if (!buildCmd) {
+      return {
+        success: false,
+        message: `No build command configured for ${repoName}`,
+      };
+    }
+
+    if (!this.isRuntimeProject(repoPath) && this.isRuntimeCommand(buildCmd)) {
+      return {
+        success: false,
+        message: `Skipping runtime build command for non Node/Deno/Bun repo: ${repoName} (${buildCmd})`,
+      };
+    }
+
+    this.logStage('build', repoName);
+    logger.info(`Building ${repoName}`);
+    const success = await this.executeBuildCommand(buildCmd, repoPath);
+
+    if (!success) {
+      return {
+        success: false,
+        message: `Build failed for ${repoName}`,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Build completed for ${repoName}`,
+    };
   }
 
   /**
