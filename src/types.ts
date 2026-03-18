@@ -18,6 +18,7 @@ export interface DiabliteConfig {
   remote?: string;
   build?: string;
   restart?: string;
+  pm2?: boolean;
   autoUpdate?: boolean;
   enabled?: boolean;
 }
