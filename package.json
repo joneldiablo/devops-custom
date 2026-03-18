@@ -1,6 +1,6 @@
 {
   "name": "devops-custom",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Auto-update daemon para proyectos Node con Git + PM2",
   "author": "diablito",
   "license": "ISC",
@@ -67,6 +67,12 @@
       "require": "./dist/cjs/index.js",
       "types": "./dist/types/index.d.ts",
       "source": "./src/index.ts"
+    },
+    "./cli/commands/build": {
+      "import": "./dist/esm/cli/commands/build.js",
+      "require": "./dist/cjs/cli/commands/build.js",
+      "types": "./dist/types/cli/commands/build.d.ts",
+      "source": "./src/cli/commands/build.ts"
     },
     "./cli/commands/scan": {
       "import": "./dist/esm/cli/commands/scan.js",
